@@ -1,15 +1,14 @@
+
 import speech_recognition as sr # recognise speech
-import random, pyttsx3, time
-from PIL import Image
 import pyautogui #screenshot
-import time, random, pyttsx3
-import os # to remove created audio files
+import random, pyttsx3, time
+import os # to access operating system
 import datetime
+import requests, json
 from time import ctime # get time details
 import webbrowser # open browser
-import pyaudio, struct, pvporcupine 
+import pyaudio, struct, pvporcupine # for wake-word
 import wikipedia, subprocess
-
 
 class person:
     name = ''
@@ -73,19 +72,20 @@ def wish():
         engine_speak(f"Good Afternoon, its {tt}")
     else:
         engine_speak(f"Good Evening, its {tt}")
+    engine_speak("Hey I am justin your personal assistant")
     engine_speak("Do you need any helping hand boss")
 
 
 # responds to your queries - (tasks)
 def respond(voice_data):
-    # 1: greeting
-    if there_exists(["hey","hi","hello"], voice_data):
+    #1 greeting
+    if there_exists(["hey","hi","hello"], voice_data) and not 'weather' in voice_data:
         greetings = ["hey, how can I help you", "hey, what's up?", "I'm listening", "may I help you with something?", "hello"]
         greet = random.choice(greetings)
         engine_speak(f"{greet} {person_obj.name}")
         engine_speak("What about you sir?")
 
-    # 2: name
+    #2 name
     if there_exists(["what is your name","tell me about yourself","tell me your name"], voice_data):
         if asis_obj.name:
             engine_speak("My name is " + asis_obj.name + " boss.")
@@ -93,19 +93,19 @@ def respond(voice_data):
         else:
             engine_speak("i dont know my name . what's your name?")
 
-    if there_exists(["my name is", "I am"], voice_data):
+    elif there_exists(["my name is", "I am"], voice_data):
         person_name = voice_data.split("is")[-1].strip()
         engine_speak("okay, i will remember that your name is " + person_name)
         person_obj.setName(person_name) # remember name in person object
 
-    # 3: greeting
+    #3 greeting
     if there_exists(["how are you","how are you doing"], voice_data):
         engine_speak("I'm very well, thanks for asking " + person_obj.name)
     
-    if there_exists(["i am fine", "i am good", "very well"], voice_data):
+    elif there_exists(["i am fine", "i am good", "very well"], voice_data):
         engine_speak("That's very good to hear sir. Hope you have a cheerful day.")
 
-    # 4: time
+    #4 time
     if there_exists(["what's the time","tell me the time","what time"], voice_data):
         time = ctime().split(" ")[3].split(":")[0:2]
         if time[0] == "00":
@@ -116,84 +116,119 @@ def respond(voice_data):
         time = hours + " hours and " + minutes + " minutes"
         engine_speak(time)
 
-    #7: get stock price / item(object) price
-    if  there_exists(["price of", "price for"], voice_data):
+    #5 get stock price / item(object) price
+    elif  there_exists(["price of", "price for"], voice_data):
         search_term = voice_data.replace("of", "for").split("for ")[-1]
         url = "https://google.com/search?q=" + search_term
         webbrowser.get().open(url)
         engine_speak("Here is what I found for " + search_term + " on google")
 
-    # 5: searching
-    if there_exists(["search"], voice_data) and 'price' not in voice_data:
-        search_term = str(voice_data.split("search ")[-1]).replace(" on youtube", "")
-        print(search_term)
+    #6 searching
+    elif there_exists(["search"], voice_data) and 'price' not in voice_data:
         if 'google' in voice_data and 'youtube' not in voice_data and 'amazon' not in voice_data:
+            search_term = str(voice_data.split("search ")[-1]).replace(" on google", "")
             engine_speak("Searching results on google")
             url = "https://google.com/search?q=" + search_term
             webbrowser.get().open(url)
             engine_speak("Here is what I found for" + search_term + " on google")
         elif there_exists(["youtube"], voice_data) and 'amazon' not in voice_data:
+            search_term = str(voice_data.split("search ")[-1]).replace(" on youtube", "")
             engine_speak("Searching youtube for " + search_term)
             url = "https://www.youtube.com/results?search_query=" + search_term
             webbrowser.get().open(url)
             engine_speak("This is what I found for " + search_term + " on youtube")
         elif there_exists(['amazon'], voice_data):
-            engine_speak("searching" + search_term +  " on amazon.com for you boss")
+            search_term = str(voice_data.split("search ")[-1]).replace(" on amazon", "")
+            engine_speak("searching " + search_term +  " on amazon.com for you boss")
             search_term = voice_data.split("search")[-1]
             url="https://www.amazon.in/s?k="+search_term
             webbrowser.get().open(url)
             engine_speak("here are the products you wanted on amazon.com")
         elif 'youtube' and 'amazon' not in voice_data:
+            search_term = str(voice_data.split("search ")[-1]).replace(" on google", "")
             engine_speak("Searching google for " + search_term)
             url = "https://google.com/search?q=" + search_term
             webbrowser.get().open(url)
             engine_speak("this is what I found for " + search_term + " on google")
     
-    # search for music
-    if there_exists(["play music", "play songs"], voice_data):
+    #7 search for music
+    elif there_exists(["play music", "play songs"], voice_data):
         url="https://open.spotify.com/search/"
         webbrowser.get().open(url)
         engine_speak("You are listening to spotify, enjoy sir")
          
-    #make a note
-    if there_exists(["make a note", "open notes"], voice_data):
-        search_term=voice_data.split("for")[-1]
-        url="https://keep.google.com/#home"
-        webbrowser.get().open(url)
-        subprocess.Popen(["StickyNotes.exe"])
+    #8 make a note
+    elif there_exists(["make a note", "open notepad", "open notes"], voice_data):
+        os.startfile(r"C:\Windows\System32\notepad.exe")
         engine_speak("Here you can make notes")
+        makeNote()
 
-    # opening websites and applications
-    if "open" in voice_data:
-        open(voice_data)
+    #9 opening websites and applications
+    elif there_exists(['open'], voice_data):
+        open(voice_data.split("open ")[-1])
         
-    #8 time table
-    if there_exists(["show my time table"], voice_data):
-        im = Image.open(r"C:\\Users\\MarvaL\\Pictures\\methodology.png")
-        im.show()
-    
-    #9 weather
-    if there_exists(["weather","tell me the weather report","whats the condition outside"], voice_data):
-        search_term = voice_data.split("for")[-1]
-        url = "https://www.google.com/search?sxsrf=ACYBGNSQwMLDByBwdVFIUCbQqya-ET7AAA%3A1578847393212&ei=oUwbXtbXDN-C4-EP-5u82AE&q=weather&oq=weather&gs_l=psy-ab.3..35i39i285i70i256j0i67l4j0i131i67j0i131j0i67l2j0.1630.4591..5475...1.2..2.322.1659.9j5j0j1......0....1..gws-wiz.....10..0i71j35i39j35i362i39._5eSPD47bv8&ved=0ahUKEwiWrJvwwP7mAhVfwTgGHfsNDxsQ4dUDCAs&uact=5"
-        webbrowser.get().open(url)
-        engine_speak("Here is what I found for on google")
+    #10 time table
+    elif there_exists(["show my time table", "open time table"], voice_data):
+        engine_speak("opening your time table boss.... please wait")
+        os.startfile(r"C:\\Users\\MarvaL\\Pictures\\methodology.png")
+        engine_speak("time table opened boss")
 
-    #10 stone paper scisorrs
-    if there_exists(["game", "rock paper scissor"], voice_data):
+    #11 weather
+    elif there_exists(["weather","weather report","whats the condition outside"], voice_data):
+        if 'weather of' in voice_data:
+            location = voice_data.split("weather of ")[-1]   
+        elif 'weather report of' in voice_data: 
+            location = voice_data.split("weather report of ")[-1]
+        else:
+            location = voice_data.split("weather in ")[-1]
+
+        engine_speak(f"Finding the weather report of {location}... boss")
+
+        key = "9d2caba9ed770fc0babad26d81964d8d"
+        location_url = f"http://api.openweathermap.org/data/2.5/weather?q={location}&appid={key}"
+
+        js= requests.get(location_url).json()
+        if js["cod"] != 404:
+            weather = js["main"]
+            temp = weather["temp"] - 273.15
+            feels_like = weather["feels_like"] - 273.15
+            humidity = weather["humidity"]
+            desc = js["weather"][0]["description"]
+            engine_speak(f"The temperature of {location} is {round(temp, 2)} degree Celsius. The feels like temperature is about {round( feels_like,2)} and humidity is around {humidity}. The weather description of the region is {desc}.")
+        else:
+            engine_speak(f"The weather report you were requesting has not been found boss")
+
+    #12 current headlines / news 
+    elif there_exists(["news", "current news", "headlines"], voice_data):
+        url = ('https://newsapi.org/v2/top-headlines?''country=in&''apiKey=01ce8054fbfe48d682634df2958fcbe1')
+        try:
+            response = requests.get(url)
+        except:
+            engine_speak("Please Check your Internet Connection boss...")
+        
+        news = json.loads(response.text)
+        limit=6
+        for index, new in enumerate(news["articles"]):
+            print(f"{index+1}: " + str(new["title"]))
+            engine_speak(str(new["description"]))
+            if index == limit:
+                break;
+        
+    #13 stone paper scisorrs
+    elif there_exists(["game", "rock paper scissor"], voice_data):
         rps()
         
-    #11 toss a coin
-    if there_exists(["flip a coin","can I have a toss", "toss", "toss a coin"], voice_data):
+    #14 toss a coin
+    elif there_exists(["flip a coin","can I have a toss", "toss", "toss a coin"], voice_data):
         engine_speak("tossing a coin for you boss...")
         moves=["heads", "tails"]   
         cmove=random.choice(moves)
         engine_speak("I think I chose " + cmove + " " + person_obj.name)
 
-    #12 calc
-    if there_exists(["open calculator"], voice_data):
-        os.startfile(r"C:\Windows\System32\calc.exe")
-        engine_speak("calculator opened, this may help you boss...s")
+    #15 calc
+    elif there_exists(["open calculator"], voice_data):
+        os.startfile(r"C:\\Windows\\System32\\calc.exe")
+        engine_speak("calculator opened, this may help you boss...")
         # if opr == '+' or 'add' or 'plus':
         #     engine_speak(int(voice_data.split()[0]) + int(voice_data.split()[2]))
         # elif opr == '-' or 'minus':
@@ -207,16 +242,16 @@ def respond(voice_data):
         # else:
         #     engine_speak("Wrong Operator")
         
-    #13 screenshot
-    if there_exists(["capture my screen","take a screenshot", "snap of my screen"], voice_data):
+    #16 screenshot
+    elif there_exists(["capture my screen","take a screenshot", "snap of my screen"], voice_data):
         myScreenshot = pyautogui.screenshot()
         ss = random.randint(1000000, 2000000)
-        myScreenshot.save('C:\\Users\\MarvaL\\Documents\\ScreenShots\\ss.png') 
+        myScreenshot.save('E:\\python\\mini project\\basic virtual assistant\\data\\ScreenShots\\ss.png') 
         engine_speak("Screenshot taken sir. you can view it by screenshots folder")
 
-    elif there_exists(["open screenshots folder", "show screenshots"], voice_data):
+    elif there_exists(["open screenshots folder", "show screenshots", "open screenshots"], voice_data):
         engine_speak("opening screenshots for you")
-        os.startfile(r"C:/Users/MarvaL/Documents/ScreenShots")
+        os.startfile(r"E:\python\mini project\basic virtual assistant\data\ScreenShots")
         engine_speak("screenshots folder opened for you boss")
 
     # exit
@@ -226,17 +261,39 @@ def respond(voice_data):
         exit()
 
 
+def makeNote():
+    engine_speak("what do you want to add in the notes boss")
+    voice_data= record_audio()
+    note = voice_data.split("add ")[-1]
+    file=open("notes.txt", "w")
+    file.write(f"-> {note}")
+    
+    engine_speak("should i close the application boss...")
+    voice_data = record_audio()
+    if 'yes' in voice_data:
+        os.system('TASKKILL /F /IM notepad.exe')
+    elif 'no' in voice_data or 'nope' in voice_data:
+        makeNote()
+    
+
 def open(voice_data):
     # search_term=voice_data.split("open")[-1]
     if there_exists(["whatsapp"], voice_data):
         url="https://web.whatsapp.com/"
         webbrowser.get().open(url)
         engine_speak("opening whatsapp for you boss")
+    elif there_exists(["youtube", "yt"], voice_data):
+        url="https://www.youtube.com/"
+        webbrowser.get().open(url)
+        engine_speak("opening youtube for you boss, enjoy watching videos...")
     elif there_exists(["instagram"], voice_data):
         engine_speak("opening instagram for you boss")
         url="https://www.instagram.com/"
         webbrowser.get().open(url)
         engine_speak("instagram opened, enjoy " + person_obj.name)
+    elif  there_exists(["chrome", "google chrome"], voice_data):
+        os.startfile(r"C:\\Users\\MarvaL\\AppData\\Local\\Google\\Chrome\\Application\\chrome.exe")
+        engine_speak("opening google chrome for you  boss")
     elif there_exists(["mails", "gmail"], voice_data):
         url="https://mail.google.com/mail/u/0/#inbox"
         webbrowser.get().open(url)
@@ -254,13 +311,10 @@ def open(voice_data):
         url="https://google.com/"
         webbrowser.get().open(url)
         engine_speak("opening google for you, here you can search anything...")
-    elif  there_exists(["chrome", "google chrome"], voice_data):
-        os.startfile(r"C:\Users\MarvaL\AppData\Local\Programs\Microsoft VS Code\Code.exe")
-        engine_speak("opening google chrome for you  boss")
-    elif  there_exists(["chrome", "google chrome"], voice_data):
-        os.startfile(r"C:\Users\MarvaL\AppData\Local\Programs\Microsoft VS Code\Code.exe")
+    elif  there_exists(["vs code", "visual studio code"], voice_data):
+        os.startfile(r"C:\\Users\\MarvaL\\AppData\\Local\\Programs\\Microsoft VS Code\\Code.exe")
         engine_speak("opening visual studio code for you, enjoy coding boss")
-    
+
 
 # rock paper scissor game code
 def rps():
@@ -273,7 +327,7 @@ def rps():
         
         engine_speak("I chose " + cmove)
         engine_speak("You chose " + pmove)
-        #engine_speak("hi")
+        
         if pmove==cmove:
             engine_speak("the match is draw")
         elif pmove== "rock" and cmove== "scissor":
@@ -306,7 +360,7 @@ def engine_wake():
     try:
         access_key = "xdaz+lo9Vlxd79+zwXjkKFZAlgIcxPVCdxyxmGHXCUlCD7doYCnrpg=="
         porcupine = pvporcupine.create(access_key='xdaz+lo9Vlxd79+zwXjkKFZAlgIcxPVCdxyxmGHXCUlCD7doYCnrpg==',
-        keyword_paths=['E:\\python\\basic virtual assistant\\wake_word\\justin_en_windows_v2_1_0.ppn'], keywords=['justin'])  # pvporcupine.KEYWORDS for all keywords
+        keyword_paths=['E:\\python\\mini project\\basic virtual assistant\\wake_word\\justin_en_windows_v2_1_0.ppn'], keywords=['justin'])  # pvporcupine.KEYWORDS for all keywords
         pa = pyaudio.PyAudio()
         audio_stream = pa.open(rate=porcupine.sample_rate, channels=1,format=pyaudio.paInt16, input=True, frames_per_buffer=porcupine.frame_length)
         while True:
@@ -335,7 +389,6 @@ asis_obj.name = 'justin'
 
 # this is task execution function where all the functions are called
 def TaskExe():
-    # while True:
     recording = ["What can I do", "How can I help you"]
     record = random.choice(recording)
     engine_speak(record)
