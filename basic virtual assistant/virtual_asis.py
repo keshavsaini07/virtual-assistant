@@ -8,7 +8,6 @@ import requests, json
 from time import ctime # get time details
 import webbrowser # open browser
 import pyaudio, struct, pvporcupine # for wake-word
-import wikipedia, subprocess
 
 class person:
     name = ''
@@ -161,7 +160,7 @@ def respond(voice_data):
     elif there_exists(["make a note", "open notepad", "open notes"], voice_data):
         os.startfile(r"C:\Windows\System32\notepad.exe")
         engine_speak("Here you can make notes")
-        makeNote()
+        # makeNote()
 
     #9 opening websites and applications
     elif there_exists(['open'], voice_data):
@@ -246,7 +245,7 @@ def respond(voice_data):
     elif there_exists(["capture my screen","take a screenshot", "snap of my screen"], voice_data):
         myScreenshot = pyautogui.screenshot()
         ss = random.randint(1000000, 2000000)
-        myScreenshot.save('E:\\python\\mini project\\basic virtual assistant\\data\\ScreenShots\\ss.png') 
+        myScreenshot.save(f'E:\\python\\mini project\\basic virtual assistant\\data\\ScreenShots\\{ss}.png') 
         engine_speak("Screenshot taken sir. you can view it by screenshots folder")
 
     elif there_exists(["open screenshots folder", "show screenshots", "open screenshots"], voice_data):
@@ -260,21 +259,6 @@ def respond(voice_data):
         engine_speak("Have a good day boss..... Bye.....!")
         exit()
 
-
-def makeNote():
-    engine_speak("what do you want to add in the notes boss")
-    voice_data= record_audio()
-    note = voice_data.split("add ")[-1]
-    file=open("notes.txt", "w")
-    file.write(f"-> {note}")
-    
-    engine_speak("should i close the application boss...")
-    voice_data = record_audio()
-    if 'yes' in voice_data:
-        os.system('TASKKILL /F /IM notepad.exe')
-    elif 'no' in voice_data or 'nope' in voice_data:
-        makeNote()
-    
 
 def open(voice_data):
     # search_term=voice_data.split("open")[-1]
