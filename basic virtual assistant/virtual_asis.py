@@ -176,7 +176,7 @@ def respond(voice_data):
     elif there_exists(["weather","weather report","whats the condition outside"], voice_data):
         if 'weather of' in voice_data:
             location = voice_data.split("weather of ")[-1]   
-        elif 'weather report of' in voice_data: 
+        elif 'weather report of' in voice_data:
             location = voice_data.split("weather report of ")[-1]
         else:
             location = voice_data.split("weather in ")[-1]
